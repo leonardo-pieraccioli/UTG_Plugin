@@ -7,29 +7,21 @@
 #include "ElementDataAsset.generated.h"
 
 /**
- * 
+ * Element Data to define different kinds of energy types and used in Reactions
  */
-UCLASS()
+UCLASS(Const)
 class CHEMISTRY_API UElementDataAsset : public UDataAsset
 {
 	GENERATED_BODY()
-	
-private:
-	float Energy;
 
 public:
 	UPROPERTY(EditDefaultsOnly, Category="ElementProperties")
 	FName ElementName;
 
+	UPROPERTY(EditDefaultsOnly, Category = "ElementProperties")
+	float InitialEnergy;
+
 public:
 	
 	bool operator==(UElementDataAsset& Rhs);
-
-	UFUNCTION()
-	float ConsumeEnergy(float AmountToConsume);
-
-	UFUNCTION()
-	float ProvideEnergy(float AmountToProvide);
-
-	//Get energy?
 };

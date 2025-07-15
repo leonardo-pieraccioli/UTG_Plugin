@@ -40,3 +40,38 @@ TArray<class UElementDataAsset*> UElementsDeveloperSettings::GetElements() const
 	}
 	return MoveTemp(ElementsData);
 }
+
+TArray<class UChemicalMaterialDataAsset*> UElementsDeveloperSettings::GetChemicalMaterials() const
+{
+	TArray<class UChemicalMaterialDataAsset*> ChemicalMaterialData;
+	ChemicalMaterialData.Reserve(Materials.Num());
+	for (FSoftObjectPath MaterialPath : Materials)
+	{
+		ChemicalMaterialData.Add(Cast<class UChemicalMaterialDataAsset>(MaterialPath.TryLoad()));
+	}
+	return MoveTemp(ChemicalMaterialData);
+}
+
+TArray<class UReactionDataAsset*> UElementsDeveloperSettings::GetReactions() const
+{
+	TArray<class UReactionDataAsset*> ReactionsData;
+	ReactionsData.Reserve(Reactions.Num());
+	for (FSoftObjectPath ReactionPath : Reactions)
+	{
+		ReactionsData.Add(Cast<class UReactionDataAsset>(ReactionPath.TryLoad()));
+	}
+	return MoveTemp(ReactionsData);
+}
+
+TArray<class UCatalystDataAsset*> UElementsDeveloperSettings::GetCatalysts() const
+{
+	TArray<class UCatalystDataAsset*> CatalystsData;
+	CatalystsData.Reserve(Catalysts.Num());
+	for (FSoftObjectPath CatalystPath : Catalysts)
+	{
+		CatalystsData.Add(Cast<class UCatalystDataAsset>(CatalystPath.TryLoad()));
+	}
+	return MoveTemp(CatalystsData);
+}
+
+

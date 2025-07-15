@@ -13,5 +13,15 @@ UCLASS()
 class CHEMISTRY_API UGameFeatureAction_AddElement : public UGameFeatureAction
 {
 	GENERATED_BODY()
-	
+
+protected:
+    UPROPERTY(EditDefaultsOnly)
+    TSet<TObjectPtr<class UElementDataAsset>> Elements;
+
+public:
+    virtual void OnGameFeatureActivating(FGameFeatureActivatingContext& Context) override;
+
+private:
+    void OnChemistrySubsystemCreated(class UChemistrySubsystem* ElementsSubsystem);
+
 };

@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
 #include "Definition/ElementDataAsset.h"
+#include "Definition/ReactionDataAsset.h"
+#include "Definition/ChemicalMaterialDataAsset.h"
+#include "Definition/CatalystDataAsset.h"
 #include "ElementsDeveloperSettings.generated.h"
 
 /**
@@ -16,19 +19,19 @@ class CHEMISTRY_API UElementsDeveloperSettings : public UDeveloperSettings
 	GENERATED_BODY()
 
 private:
-	UPROPERTY(EditDefaultsOnly, config, meta = (AllowedClasses = "UElementDataAsset"))
+	UPROPERTY(EditDefaultsOnly, config, meta = (AllowedClasses = "/Script/Chemistry.ChemicalMaterialDataAsset"))
 	TSet<FSoftObjectPath> Materials;
 	
-	UPROPERTY(EditDefaultsOnly, config, meta = (AllowedClasses = ""))
+	UPROPERTY(EditDefaultsOnly, config, meta = (AllowedClasses = "/Script/Chemistry.ElementDataAsset"))
 	TSet<FSoftObjectPath> Elements;
 
-	UPROPERTY(EditDefaultsOnly, config , meta = (AllowedClasses = ""))
+	UPROPERTY(EditDefaultsOnly, config , meta = (AllowedClasses = "/Script/Chemistry.ReactionDataAsset"))
 	TSet<FSoftObjectPath> Reactions;
 
-	UPROPERTY(EditDefaultsOnly, config, meta = (AllowedClasses = ""))
+	UPROPERTY(EditDefaultsOnly, config, meta = (AllowedClasses = "/Script/Chemistry.CatalystDataAsset"))
 	TSet<FSoftObjectPath> Catalysts;
 
-	// External Modifiers?
+	// TODO: ExternalModifiers
 
 public:
 	/** Gets the settings container name for the settings, either Project or Editor */
@@ -47,7 +50,7 @@ public:
 
 public:
 	[[nodiscard]] TArray<class UElementDataAsset*> GetElements() const;
-	// Get Materials
-	// Get Reactions
-	// Get Catalysts
+	[[nodiscard]] TArray<class UChemicalMaterialDataAsset*> GetChemicalMaterials() const;
+	[[nodiscard]] TArray<class UReactionDataAsset*> GetReactions() const;
+	[[nodiscard]] TArray<class UCatalystDataAsset*> GetCatalysts() const;
 };
