@@ -25,3 +25,45 @@ public:
 	
 	bool operator==(UElementDataAsset& Rhs);
 };
+
+USTRUCT(BlueprintType)
+struct FChemicalElement
+{
+	GENERATED_BODY()
+public:
+	FChemicalElement() = default;
+	FChemicalElement(const UElementDataAsset* Element) : Type(Element->ElementName), Energy(Element->InitialEnergy) {};
+	FChemicalElement(const FChemicalElement& Other) : Type(Other.Type), Energy(Other.Energy) {};
+	FChemicalElement(FChemicalElement&& Other) noexcept : Type(MoveTemp(Other.Type)), Energy(MoveTemp(Other.Energy)) {};
+	FChemicalElement& operator=(const FChemicalElement& Rhs)
+	{
+		if (this != &Rhs)
+		{
+			Type = Rhs.Type;
+			Energy = Rhs.Energy;
+		}
+		return *this;
+	};
+	FChemicalElement& operator=(FChemicalElement&& Rhs) noexcept
+	{
+		if (this != &Rhs)
+		{
+			Type = MoveTemp(Rhs.Type);
+			Energy = MoveTemp(Rhs.Energy);
+		}
+		return *this;
+	};
+
+private:
+	FName Type;
+
+public:
+	UPROPERTY(BlueprintReadWrite)
+	float Energy;
+
+public:
+	FName GetType();
+	// useless? 
+	float ConsumeEnergy(float Amount);
+	float ProvideEnergy(float Amount);
+};

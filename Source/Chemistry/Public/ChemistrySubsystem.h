@@ -32,12 +32,47 @@ private:
 	TArray<const UCatalystDataAsset*> Catalysts;
 	TArray<const UReactionDataAsset*> Reactions;
 
+	TMap<FName, FChemicalElement> RuntimeElements;
+	TMap<FName, FChemicalMaterial> RuntimeMaterials;
+	TMap<FName, FChemicalCatalyst> RuntimeCatalysts;
+	TMap<FName, FChemicalReaction> RuntimeReactions;
+
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection);
 
+private:
 	void AddChemicalMaterial(const UChemicalMaterialDataAsset* ChemicalMaterialData);
 	void AddElement(const class UElementDataAsset* ElementData);
 	void AddReaction(const class UReactionDataAsset* ReactionData);
 	void AddCatalyst(const class UCatalystDataAsset* CatalystData);
 	// void AddExternalModifier()
+
+	FChemicalMaterial CreateMaterialFromData(const UChemicalMaterialDataAsset* MaterialData);
+	FChemicalReaction CreateReactionFromData(const UReactionDataAsset* ReactionData);
+
+	FChemicalReaction* GetReaction(FName ReactionName);
+	// To generate a new reaction when there components are in proximity
+	FChemicalReaction& StartReaction(FName ReactionName);
+
+public:
+	FChemicalElement* GetElement(FName ElementName);
+	FChemicalMaterial* GetMaterial(FName MaterialName);
+	FChemicalCatalyst* GetCatalyst(FName CatalystName);
+	// FChemicalReaction* GetReaction(FName ReactionName); // Not sure if we need this
+	
+// Return a copy of a specific entity
+	UFUNCTION(BlueprintCallable, Category = "Chemistry")
+	FChemicalMaterial& GenerateMaterial(FName MaterialName, bool& MaterialFound);
+
+	UFUNCTION(BlueprintCallable, Category = "Chemistry")
+	FChemicalCatalyst& GenerateCatalyst(FName CatalystName, bool& CatalystFound);
+
+	// Data structure for Proximity
+	
+	// SignalProximityBegin()
+	// SignalProximityEnd()
+	
+	// Data structure for Active Reactions
+
+	// Tick to update Active Reactions
 };

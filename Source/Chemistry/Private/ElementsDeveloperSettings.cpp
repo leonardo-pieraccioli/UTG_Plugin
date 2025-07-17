@@ -21,7 +21,7 @@ FName UElementsDeveloperSettings::GetSectionName() const
 #if WITH_EDITOR
 FText UElementsDeveloperSettings::GetSectionText() const
 {
-	return NSLOCTEXT("ElementsPlugin", "ElementsPluginSettings", "ElementsPlugin");
+	return NSLOCTEXT("ElementsPlugin", "ElementsPluginSettings", "ElementsPlugin - Chemistry");
 }
 
 FText UElementsDeveloperSettings::GetSectionDescription() const
