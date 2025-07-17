@@ -103,14 +103,15 @@ struct FChemicalReaction
 	GENERATED_BODY()
 
 public:
-	FChemicalReaction() = default;
+	FChemicalReaction() : ReactionId(FGuid::NewGuid()) {};
 	FChemicalReaction(const UReactionDataAsset* ReactionData);
-	FChemicalReaction(const FChemicalReaction& Other) : Products(Other.Products), Reagents(Other.Reagents), RequiredElement(Other.RequiredElement), Priority(Other.Priority), ActivationThreshold(Other.ActivationThreshold) {};
-	FChemicalReaction(FChemicalReaction&& Other) noexcept : Products(MoveTemp(Other.Products)), Reagents(MoveTemp(Other.Reagents)), RequiredElement(MoveTemp(Other.RequiredElement)), Priority(MoveTemp(Other.Priority)), ActivationThreshold(MoveTemp(Other.ActivationThreshold)) {};
+	FChemicalReaction(const FChemicalReaction& Other) : ReactionId(FGuid::NewGuid()), Products(Other.Products), Reagents(Other.Reagents), RequiredElement(Other.RequiredElement), Priority(Other.Priority), ActivationThreshold(Other.ActivationThreshold) {};
+	FChemicalReaction(FChemicalReaction&& Other) noexcept : ReactionId(MoveTemp(Other.ReactionId)), Products(MoveTemp(Other.Products)), Reagents(MoveTemp(Other.Reagents)), RequiredElement(MoveTemp(Other.RequiredElement)), Priority(MoveTemp(Other.Priority)), ActivationThreshold(MoveTemp(Other.ActivationThreshold)) {};
 	FChemicalReaction& operator=(const FChemicalReaction& Rhs)
 	{
 		if (this != &Rhs)
 		{
+			ReactionId = MoveTemp(Rhs.ReactionId);
 			Products = Rhs.Products;
 			Reagents = Rhs.Reagents;
 			RequiredElement = Rhs.RequiredElement;
@@ -123,6 +124,7 @@ public:
 	{
 		if (this != &Rhs)
 		{
+			ReactionId = MoveTemp(Rhs.ReactionId);
 			Products = MoveTemp(Rhs.Products);
 			Reagents = MoveTemp(Rhs.Reagents);
 			RequiredElement = MoveTemp(Rhs.RequiredElement);
@@ -133,6 +135,8 @@ public:
 	}
 
 private:
+	FGuid ReactionId;
+
 	// TODO: Maybe coefficients are not intuitive, we could use a more descriptive name like "Amount" or "Quantity"
 	struct ElementTuple
 	{

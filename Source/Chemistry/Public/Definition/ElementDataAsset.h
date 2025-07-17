@@ -31,15 +31,16 @@ struct FChemicalElement
 {
 	GENERATED_BODY()
 public:
-	FChemicalElement() = default;
-	FChemicalElement(const UElementDataAsset* Element) : Type(Element->ElementName), Energy(Element->InitialEnergy) {};
-	FChemicalElement(const FChemicalElement& Other) : Type(Other.Type), Energy(Other.Energy) {};
-	FChemicalElement(FChemicalElement&& Other) noexcept : Type(MoveTemp(Other.Type)), Energy(MoveTemp(Other.Energy)) {};
+	FChemicalElement() : ID(FGuid::NewGuid()) {};
+	FChemicalElement(const UElementDataAsset* Element) : Type(Element->ElementName), ID(FGuid::NewGuid()), Energy(Element->InitialEnergy) {};
+	FChemicalElement(const FChemicalElement& Other) : Type(Other.Type), ID(FGuid::NewGuid()), Energy(Other.Energy) {};
+	FChemicalElement(FChemicalElement&& Other) noexcept : Type(MoveTemp(Other.Type)), ID(MoveTemp(Other.ID)), Energy(MoveTemp(Other.Energy)) {};
 	FChemicalElement& operator=(const FChemicalElement& Rhs)
 	{
 		if (this != &Rhs)
 		{
 			Type = Rhs.Type;
+			ID = MoveTemp(Rhs.ID);
 			Energy = Rhs.Energy;
 		}
 		return *this;
@@ -49,6 +50,7 @@ public:
 		if (this != &Rhs)
 		{
 			Type = MoveTemp(Rhs.Type);
+			ID = MoveTemp(Rhs.ID);
 			Energy = MoveTemp(Rhs.Energy);
 		}
 		return *this;
@@ -56,7 +58,7 @@ public:
 
 private:
 	FName Type;
-
+	FGuid ID;
 public:
 	UPROPERTY(BlueprintReadWrite)
 	float Energy;

@@ -31,15 +31,16 @@ struct FChemicalMaterial
 {
 	GENERATED_BODY()
 public:
-	FChemicalMaterial() {};
-	FChemicalMaterial(const UChemicalMaterialDataAsset* MaterialData) : Type(MaterialData->MaterialName) {};
-	FChemicalMaterial(const FChemicalMaterial& Other) : Type(Other.Type), AttachedElements(Other.AttachedElements), Quantity(Other.Quantity) {};
-	FChemicalMaterial(FChemicalMaterial&& Other) noexcept : Type(MoveTemp(Other.Type)), AttachedElements(MoveTemp(Other.AttachedElements)), Quantity(Other.Quantity) {};
+	FChemicalMaterial() : ID(FGuid::NewGuid()) {};
+	FChemicalMaterial(const UChemicalMaterialDataAsset* MaterialData) : Type(MaterialData->MaterialName), ID(FGuid::NewGuid()) {};
+	FChemicalMaterial(const FChemicalMaterial& Other) : Type(Other.Type), ID(FGuid::NewGuid()), AttachedElements(Other.AttachedElements), Quantity(Other.Quantity) {};
+	FChemicalMaterial(FChemicalMaterial&& Other) noexcept : Type(MoveTemp(Other.Type)), ID(MoveTemp(Other.ID)), AttachedElements(MoveTemp(Other.AttachedElements)), Quantity(Other.Quantity) {};
 	FChemicalMaterial& operator=(const FChemicalMaterial& Rhs)
 	{
 		if (this != &Rhs)
 		{
 			Type = Rhs.Type;
+			ID = MoveTemp(Rhs.ID);
 			AttachedElements = Rhs.AttachedElements;
 			Quantity = Rhs.Quantity;
 		}
@@ -50,6 +51,7 @@ public:
 		if (this != &Rhs)
 		{
 			Type = MoveTemp(Rhs.Type);
+			ID = MoveTemp(Rhs.ID);
 			AttachedElements = MoveTemp(Rhs.AttachedElements);
 			Quantity = Rhs.Quantity;
 		}
@@ -58,6 +60,7 @@ public:
 
 private:
 	FName Type;
+	FGuid ID;
 	TMap<FName, FChemicalElement> AttachedElements;
 	float Quantity;
 
