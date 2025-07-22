@@ -52,9 +52,6 @@ struct FReactionReagents
 	
 	UPROPERTY(EditDefaultsOnly, Category = "ReactionProperties");
 	TArray<FMaterialReactionTuple> Materials;
-
-	UPROPERTY(EditDefaultsOnly, Category = "ReactionProperties");
-	TArray<FCatalystReactionTuple> Catalysts;
 };
 
 USTRUCT()
@@ -103,15 +100,31 @@ struct FChemicalReaction
 	GENERATED_BODY()
 
 public:
+	// Default constructor generates a new unique ID for the reaction
 	FChemicalReaction() : ReactionId(FGuid::NewGuid()) {};
+	// Constructor that initializes the reaction from a ReactionDataAsset
 	FChemicalReaction(const UReactionDataAsset* ReactionData);
-	FChemicalReaction(const FChemicalReaction& Other) : ReactionId(FGuid::NewGuid()), Products(Other.Products), Reagents(Other.Reagents), RequiredElement(Other.RequiredElement), Priority(Other.Priority), ActivationThreshold(Other.ActivationThreshold) {};
-	FChemicalReaction(FChemicalReaction&& Other) noexcept : ReactionId(MoveTemp(Other.ReactionId)), Products(MoveTemp(Other.Products)), Reagents(MoveTemp(Other.Reagents)), RequiredElement(MoveTemp(Other.RequiredElement)), Priority(MoveTemp(Other.Priority)), ActivationThreshold(MoveTemp(Other.ActivationThreshold)) {};
+	// Copy and Move constructors
+	FChemicalReaction(const FChemicalReaction& Other) : 
+		ReactionId(FGuid::NewGuid()), 
+		Products(Other.Products), 
+		Reagents(Other.Reagents),
+		RequiredElement(Other.RequiredElement), 
+		Priority(Other.Priority), 
+		ActivationThreshold(Other.ActivationThreshold) {};
+	FChemicalReaction(FChemicalReaction&& Other) noexcept : 
+		ReactionId(MoveTemp(Other.ReactionId)), 
+		Products(MoveTemp(Other.Products)), 
+		Reagents(MoveTemp(Other.Reagents)), 
+		RequiredElement(MoveTemp(Other.RequiredElement)), 
+		Priority(MoveTemp(Other.Priority)), 
+		ActivationThreshold(MoveTemp(Other.ActivationThreshold)) {};
+	// Copy and Move assignment operators
 	FChemicalReaction& operator=(const FChemicalReaction& Rhs)
 	{
 		if (this != &Rhs)
 		{
-			ReactionId = MoveTemp(Rhs.ReactionId);
+			ReactionId = Rhs.ReactionId;
 			Products = Rhs.Products;
 			Reagents = Rhs.Reagents;
 			RequiredElement = Rhs.RequiredElement;
@@ -119,7 +132,7 @@ public:
 			ActivationThreshold = Rhs.ActivationThreshold;
 		}
 		return *this;
-	}
+	};
 	FChemicalReaction& operator=(FChemicalReaction&& Rhs) noexcept
 	{
 		if (this != &Rhs)
@@ -132,7 +145,9 @@ public:
 			ActivationThreshold = MoveTemp(Rhs.ActivationThreshold);
 		}
 		return *this;
-	}
+	};
+	// Destructor
+	~FChemicalReaction() = default;
 
 private:
 	FGuid ReactionId;
@@ -166,7 +181,6 @@ private:
 	struct ReagentEntities
 	{
 		TArray<MaterialTuple> Materials;
-		TArray<CatalystTuple> Catalysts;
 	};
 
 public:
@@ -177,11 +191,10 @@ public:
 	float ActivationThreshold;
 
 	TArray<FName> GetReagentMaterials();
-	TArray<FName> GetReagentCatalysts();
 	TArray<FName> GetProductMaterials();
 	TArray<FName> GetProductCatalysts();
 	TArray<FName> GetProductElements();
 
 
-	// ExecuteReaction();
+	void ProcessReaction();
 };

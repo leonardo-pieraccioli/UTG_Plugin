@@ -31,16 +31,29 @@ struct FChemicalElement
 {
 	GENERATED_BODY()
 public:
+	// Default Constructor
 	FChemicalElement() : ID(FGuid::NewGuid()) {};
-	FChemicalElement(const UElementDataAsset* Element) : Type(Element->ElementName), ID(FGuid::NewGuid()), Energy(Element->InitialEnergy) {};
-	FChemicalElement(const FChemicalElement& Other) : Type(Other.Type), ID(FGuid::NewGuid()), Energy(Other.Energy) {};
-	FChemicalElement(FChemicalElement&& Other) noexcept : Type(MoveTemp(Other.Type)), ID(MoveTemp(Other.ID)), Energy(MoveTemp(Other.Energy)) {};
+	// Constructor from ElementDataAsset
+	FChemicalElement(const UElementDataAsset* Element) : 
+		Type(Element->ElementName), 
+		ID(FGuid::NewGuid()), 
+		Energy(Element->InitialEnergy) {};
+	// Copy and Move Constructors
+	FChemicalElement(const FChemicalElement& Other) : 
+		Type(Other.Type), 
+		ID(FGuid::NewGuid()),
+		Energy(Other.Energy) {};
+	FChemicalElement(FChemicalElement&& Other) noexcept : 
+		Type(MoveTemp(Other.Type)), 
+		ID(MoveTemp(Other.ID)), 
+		Energy(MoveTemp(Other.Energy)) {};
+	// Copy and Move Assignment Operators
 	FChemicalElement& operator=(const FChemicalElement& Rhs)
 	{
 		if (this != &Rhs)
 		{
 			Type = Rhs.Type;
-			ID = MoveTemp(Rhs.ID);
+			ID = Rhs.ID;
 			Energy = Rhs.Energy;
 		}
 		return *this;
@@ -55,6 +68,8 @@ public:
 		}
 		return *this;
 	};
+	// Destructor
+	~FChemicalElement() = default;
 
 private:
 	FName Type;
@@ -62,8 +77,6 @@ private:
 public:
 	UPROPERTY(BlueprintReadWrite)
 	float Energy;
-
-public:
 	FName GetType();
 	// useless? 
 	float ConsumeEnergy(float Amount);

@@ -14,6 +14,11 @@ FName FChemicalMaterial::GetType()
 	return Type;
 }
 
+FGuid FChemicalMaterial::GetID()
+{
+	return ID;
+}
+
 bool FChemicalMaterial::AttachElement(FChemicalElement NewElement)
 {
 	if (AttachedElements.Contains(NewElement.GetType()))

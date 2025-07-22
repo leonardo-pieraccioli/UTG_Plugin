@@ -8,7 +8,6 @@
 FChemicalReaction::FChemicalReaction(const UReactionDataAsset* ReactionData) : Priority(ReactionData->Priority), ActivationThreshold(ReactionData->ActivationThreshold)
 {
 	Reagents.Materials.Reserve(ReactionData->Reagents.Materials.Num());
-	Reagents.Catalysts.Reserve(ReactionData->Reagents.Catalysts.Num());
 
 	Products.Materials.Reserve(ReactionData->Products.Materials.Num());
 	Products.Catalysts.Reserve(ReactionData->Products.Catalysts.Num());
@@ -24,17 +23,6 @@ TArray<FName> FChemicalReaction::GetReagentMaterials()
 		ReagentMaterialsNames.Add(Material.Material->GetType());
 	} 
 	return ReagentMaterialsNames;
-}
-
-TArray<FName> FChemicalReaction::GetReagentCatalysts()
-{
-	TArray<FName> ReagentCatalystsNames;
-	ReagentCatalystsNames.Reserve(Reagents.Catalysts.Num());
-	for (auto ReagentCatalysts = Reagents.Catalysts; CatalystTuple Catalyst : ReagentCatalysts)
-	{
-		ReagentCatalystsNames.Add(Catalyst.Catalyst->GetType());
-	}
-	return ReagentCatalystsNames;
 }
 
 TArray<FName> FChemicalReaction::GetProductMaterials()
@@ -68,4 +56,9 @@ TArray<FName> FChemicalReaction::GetProductElements()
 		ProductElementsNames.Add(Element.Element->GetType());
 	}
 	return ProductElementsNames;
+}
+
+void FChemicalReaction::ProcessReaction()
+{
+	UE_LOG(LogElementsChemistry, Display, TEXT("Reaction %s executing"), *ReactionId.ToString());
 }

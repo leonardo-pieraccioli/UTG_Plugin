@@ -17,3 +17,8 @@ FName FChemicalCatalyst::GetType()
 {
 	return Type;
 }
+
+FGuid FChemicalCatalyst::GetID()
+{
+	return ID;
+}
