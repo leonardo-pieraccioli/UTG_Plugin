@@ -14,7 +14,7 @@
  * Chemistry portion of the elements plugin
  */
 UCLASS()
-class CHEMISTRY_API UChemistrySubsystem : public UWorldSubsystem
+class CHEMISTRY_API UChemistrySubsystem : public UTickableWorldSubsystem
 {
 	GENERATED_BODY()
 
@@ -27,11 +27,11 @@ public:
 	static FDelegateHandle RegisterOnElementsSubsystemCreated(FOnElementsSubsystemCreated::FDelegate&& Delegate);
 
 private:
-	TArray<const UElementDataAsset*> Elements;
-	TArray<const UChemicalMaterialDataAsset*> Materials;
-	TArray<const UCatalystDataAsset*> Catalysts;
-	TArray<const UReactionDataAsset*> Reactions;
-
+	// TArray<const UElementDataAsset*> Elements;
+	// TArray<const UChemicalMaterialDataAsset*> Materials;
+	// TArray<const UCatalystDataAsset*> Catalysts;
+	// TArray<const UReactionDataAsset*> Reactions;
+	
 	TMap<FName, FChemicalElement> RuntimeElements;
 	TMap<FName, FChemicalMaterial> RuntimeMaterials;
 	TMap<FName, FChemicalCatalyst> RuntimeCatalysts;
@@ -39,6 +39,7 @@ private:
 
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection);
+	virtual void Deinitialize() override { Super::Deinitialize(); }
 
 private:
 	void AddChemicalMaterial(const UChemicalMaterialDataAsset* ChemicalMaterialData);
@@ -53,6 +54,11 @@ private:
 	FChemicalReaction* GetReaction(FName ReactionName);
 	// To generate a new reaction when there components are in proximity
 	FChemicalReaction& StartReaction(FName ReactionName);
+	
+	TMap<FGuid, FChemicalReaction> ActiveReactions; // List of active reactions in the world
+	
+	// TODO: implement this using a graph structure to allow to end proximity
+	TMap<FGuid, TMap<FGuid, FChemicalMaterial*>> EntitiesInProximity;
 
 public:
 	FChemicalElement* GetElement(FName ElementName);
@@ -60,19 +66,25 @@ public:
 	FChemicalCatalyst* GetCatalyst(FName CatalystName);
 	// FChemicalReaction* GetReaction(FName ReactionName); // Not sure if we need this
 	
-// Return a copy of a specific entity
-	UFUNCTION(BlueprintCallable, Category = "Chemistry")
-	FChemicalMaterial& GenerateMaterial(FName MaterialName, bool& MaterialFound);
+	// Return a copy of an existing material or catalyst starting from runtime structures
+	UFUNCTION(BlueprintCallable, Category = "Chemistry")	
+	FChemicalMaterial GenerateMaterial(FName MaterialName, bool& MaterialFound);
 
-	UFUNCTION(BlueprintCallable, Category = "Chemistry")
-	FChemicalCatalyst& GenerateCatalyst(FName CatalystName, bool& CatalystFound);
+	//TODO: refactor this to use a more generic approach for proximity detection
+	UFUNCTION(BlueprintCallable, Category = "Chemistry", meta = (DisplayName = "Begin Proximity"))
+	bool BeginProximity(UPARAM(ref) FChemicalMaterial& Material1, UPARAM(ref) FChemicalMaterial& Material2);
 
-	// Data structure for Proximity
+	UFUNCTION(BlueprintCallable, Category = "Chemistry", meta = (DisplayName = "End Proximity"))
+	bool EndProximity(UPARAM(ref) FChemicalMaterial& Material1, UPARAM(ref) FChemicalMaterial& Material2);
+
+	UFUNCTION(BlueprintCallable, Category = "Chemistry", meta = (DisplayName = "Check Proximity"))
+	bool CheckProximity(UPARAM(ref) FChemicalMaterial& Material1, UPARAM(ref) FChemicalMaterial& Material2);
+
+	virtual bool ShouldCreateSubsystem(UObject* Outer) const override { return true; }
+
+	virtual void Tick(float DeltaTime) override;
 	
-	// SignalProximityBegin()
-	// SignalProximityEnd()
-	
-	// Data structure for Active Reactions
+	virtual bool IsTickable() const override { return GetWorld() != nullptr; }
 
-	// Tick to update Active Reactions
+	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(UChemistrySubsystem, STATGROUP_Tickables); }
 };

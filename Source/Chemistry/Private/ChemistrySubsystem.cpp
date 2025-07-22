@@ -20,10 +20,40 @@ FDelegateHandle UChemistrySubsystem::RegisterOnElementsSubsystemCreated(FOnEleme
 	return OnElementsSubsystemCreatedDelegate.Add(MoveTemp(Delegate));
 }
 
-// TODO: Add initialization of Runtime data structures
+void UChemistrySubsystem::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	
+	// TODO: -------- REMOVE --------------------------------------------------------------------------------------------------------------------------------
+	/**/static float timer = 0;																															 /**/
+	/**/timer += DeltaTime;																																 /**/
+	/**/if (timer < 2) return;																															 /**/
+	/**/UE_LOG(LogElementsChemistry, Display, TEXT("GROUP PROXIMITY REPORT:"));																			 /**/
+	/**/for (auto ProxGroup : EntitiesInProximity)																										 /**/
+	/**/{																																				 /**/
+	/**/	UE_LOG(LogElementsChemistry, Display, TEXT("Proximity group: %s"), *ProxGroup.Key.ToString());												 /**/
+	/**/	for (auto ProxElement : ProxGroup.Value)																									 /**/
+	/**/	{																																			 /**/
+	/**/		UE_LOG(LogElementsChemistry, Display, TEXT("\t%s: %s"), *ProxElement.Key.ToString(), *ProxElement.Value->GetType().ToString());			 /**/
+	/**/	}																																			 /**/
+	/**/}																																				 /**/
+	/**/timer = 0;																																		 /**/
+	// ------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	if (ActiveReactions.IsEmpty())
+	{
+		return;
+	}
+	for (auto ReactionTuple : ActiveReactions)
+	{
+		ReactionTuple.Value.ProcessReaction();
+	}
+}
+
 void UChemistrySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+
 	const UElementsDeveloperSettings* DevSettings = GetDefault<UElementsDeveloperSettings>();
 	
 	// Initialize entities definitions
@@ -139,12 +169,6 @@ FChemicalReaction UChemistrySubsystem::CreateReactionFromData(const UReactionDat
 		UE_LOG(LogElementsChemistry, Display, TEXT("Material %s with coefficient %f added to Products of Reaction %s"), *MaterialTuple.Material->MaterialName.ToString(), MaterialTuple.Coefficient, *ReactionData->GetFName().ToString());
 	}
 
-	for (auto CatalystsData = ReactionData->Reagents.Catalysts; FCatalystReactionTuple CatalystTuple : CatalystsData)
-	{
-		NewReaction.Reagents.Catalysts.Emplace(CatalystTuple.Coefficient, GetCatalyst(CatalystTuple.Catalyst->CatalystName));
-		UE_LOG(LogElementsChemistry, Display, TEXT("Catalyst %s with coefficient %f added to Reagents of Reaction %s"), *CatalystTuple.Catalyst->CatalystName.ToString(), CatalystTuple.Coefficient, *ReactionData->GetFName().ToString());
-	}
-
 	for (auto MaterialsData = ReactionData->Reagents.Materials; FMaterialReactionTuple MaterialTuple : MaterialsData)
 	{
 		NewReaction.Reagents.Materials.Emplace(MaterialTuple.Coefficient, GetMaterial(MaterialTuple.Material->MaterialName));
@@ -199,7 +223,7 @@ FChemicalReaction* UChemistrySubsystem::GetReaction(FName ReactionName)
 	return FoundReaction;
 }
 
-FChemicalMaterial& UChemistrySubsystem::GenerateMaterial(FName MaterialName, bool& MaterialFound)
+FChemicalMaterial UChemistrySubsystem::GenerateMaterial(FName MaterialName, bool& MaterialFound)
 {
 	FChemicalMaterial* FoundMaterial = GetMaterial(MaterialName);
 	if (!FoundMaterial)
@@ -209,20 +233,154 @@ FChemicalMaterial& UChemistrySubsystem::GenerateMaterial(FName MaterialName, boo
 		return *FoundMaterial;
 	}
 	MaterialFound = true;
-	return *FoundMaterial;
+	FChemicalMaterial NewMaterial{ *FoundMaterial };
+	UE_LOG(LogElementsChemistry, Display, TEXT("Material %s generated successfully"), *NewMaterial.ToString());
+	return NewMaterial;
 }
 
-FChemicalCatalyst& UChemistrySubsystem::GenerateCatalyst(FName CatalystName, bool& CatalystFound)
+bool UChemistrySubsystem::BeginProximity(UPARAM(ref) FChemicalMaterial& Material1, UPARAM(ref) FChemicalMaterial& Material2)
 {
-	FChemicalCatalyst* FoundCatalyst = GetCatalyst(CatalystName);
-	if (!FoundCatalyst)
+	// Same ID -> Same material -> Cannot signal
+	if (Material1.GetID() == Material2.GetID())
 	{
-		CatalystFound = false;
-		UE_LOG(LogElementsChemistry, Error, TEXT("Cannot generate catalyst %s: not found in subsystem"), *CatalystName.ToString());
-		return *FoundCatalyst;
+		UE_LOG(LogElementsChemistry, Warning, TEXT("Signaled proximity between the same material. This should not be possible."));
+		return false;
 	}
-	CatalystFound = true;
-	return *FoundCatalyst;
+
+	// Valid IDs, Same proximity IDs -> Proximity already signaled
+	if (Material1.ProximityId.IsValid() && Material2.ProximityId.IsValid() && Material1.ProximityId == Material2.ProximityId)
+	{
+		//UE_LOG(LogElementsChemistry, Warning, TEXT("Materials %s and %s have already signaled proximity, with ID %s"), *Material1.ToString(), *Material2.ToString(), *Material1.ProximityId.ToString());
+		return false;
+	}
+
+	// Both invalid proximity ID -> New proximity group
+	if (!Material1.ProximityId.IsValid() && !Material2.ProximityId.IsValid())
+	{
+		FGuid NewProximityId = FGuid::NewGuid();
+		EntitiesInProximity.Add(NewProximityId);
+
+		EntitiesInProximity[NewProximityId].Add(Material1.GetID(), &Material1);
+		Material1.ProximityId = NewProximityId;
+		
+		EntitiesInProximity[NewProximityId].Add(Material2.GetID(), &Material2);
+		Material2.ProximityId = NewProximityId;
+
+		UE_LOG(LogElementsChemistry, Display, TEXT("New proximity group! Materials %s and %s \tProximity ID: %s"), *Material1.ToString(), *Material2.ToString(), *NewProximityId.ToString());
+		return true;
+	}
+
+	// One of them invalid -> Add it to the other proximity group
+	if (Material1.ProximityId.IsValid() && !Material2.ProximityId.IsValid())
+	{
+		if (!EntitiesInProximity.Contains(Material1.ProximityId))
+		{
+			UE_LOG(LogElementsChemistry, Error, TEXT("Material %s has ProximityId %s but not found in EntitiesInProximity!"), *Material1.ToString(), *Material1.ProximityId.ToString());
+			return false;
+		}
+
+		EntitiesInProximity[Material1.ProximityId].Add(Material2.GetID(), &Material2);
+		Material2.ProximityId = Material1.ProximityId;
+		UE_LOG(LogElementsChemistry, Display, TEXT("Proximity signaled: %s united with %s \tProximity ID: %s"), *Material2.ToString(), *Material1.ToString(), *Material1.ProximityId.ToString());
+		return true;
+	}
+	if (!Material1.ProximityId.IsValid() && Material2.ProximityId.IsValid())
+	{
+		if (!EntitiesInProximity.Contains(Material2.ProximityId))
+		{
+			UE_LOG(LogElementsChemistry, Error, TEXT("Material %s has ProximityId %s but not found in EntitiesInProximity!"), *Material2.ToString(), *Material2.ProximityId.ToString());
+			return false;
+		}
+
+		EntitiesInProximity[Material2.ProximityId].Add(Material1.GetID(), &Material1);
+		Material1.ProximityId = Material2.ProximityId;
+		UE_LOG(LogElementsChemistry, Display, TEXT("Proximity signaled: %s united with %s \tProximity ID: %s"), *Material1.ToString(), *Material2.ToString(), *Material1.ProximityId.ToString());
+		return true;
+	}
+
+	// Valid IDs, Different proximity IDs -> Unite proximity groups
+	if (Material1.ProximityId.IsValid() && Material2.ProximityId.IsValid() && Material1.ProximityId != Material2.ProximityId)
+	{
+		int NGroup1 = EntitiesInProximity[Material1.ProximityId].Num();
+		int NGroup2 = EntitiesInProximity[Material2.ProximityId].Num();
+		FGuid IdTransfer = Material1.ProximityId;
+		FGuid IdDestination = Material2.ProximityId;
+		if (NGroup1 > NGroup2)
+		{
+			IdTransfer = Material2.ProximityId;
+			IdDestination = Material1.ProximityId;
+		}
+	
+		for (auto Material : EntitiesInProximity[IdTransfer])
+		{
+			Material.Value->ProximityId = IdDestination;
+			EntitiesInProximity[IdDestination].Add(Material);
+		}
+		EntitiesInProximity.Remove(IdTransfer);
+		
+        UE_LOG(LogElementsChemistry, Display, TEXT("Proximity groups %s and %s have been united."), *IdTransfer.ToString(), *IdDestination.ToString());
+		return true;
+	}
+	
+	// Other cases
+	UE_LOG(LogElementsChemistry, Error, TEXT("Something went wrong between Materials %s and %s"), *Material1.ToString(), *Material2.ToString());
+	return false;
+} 
+
+bool UChemistrySubsystem::EndProximity(UPARAM(ref) FChemicalMaterial& Material1, UPARAM(ref) FChemicalMaterial& Material2)
+{
+	if (!Material1.ProximityId.IsValid() || !Material2.ProximityId.IsValid())
+	{
+		UE_LOG(LogElementsChemistry, Error, TEXT("Cannot end proximity between Materials %s and %s: one or both have no ProximityId"), *Material1.ToString(), *Material2.ToString());
+		return false;
+	}
+
+	if (Material1.ProximityId != Material2.ProximityId)
+	{
+		UE_LOG(LogElementsChemistry, Error, TEXT("Cannot end proximity between Materials %s and %s: they are NOT in the same Proximity Group"), *Material1.ToString(), *Material2.ToString());
+		return false;
+	}
+
+	FGuid ProximityIdToRemove = Material1.ProximityId;
+	if (EntitiesInProximity[ProximityIdToRemove].Remove(Material1.GetID()) < 1)
+	{
+		UE_LOG(LogElementsChemistry, Error, TEXT("Cannot remove Material %s from ProximityId %s cannot be found"), *Material1.ToString(), *Material1.ProximityId.ToString());
+		return false;
+	}
+
+	if (EntitiesInProximity[ProximityIdToRemove].Remove(Material2.GetID()) < 1)
+	{
+		UE_LOG(LogElementsChemistry, Error, TEXT("Cannot remove Material %s from ProximityId %s cannot be found"), *Material2.ToString(), *Material2.ProximityId.ToString());
+		return false;
+	}
+
+	if (EntitiesInProximity[ProximityIdToRemove].Num() == 0)
+	{
+		EntitiesInProximity.Remove(ProximityIdToRemove);
+		UE_LOG(LogElementsChemistry, Display, TEXT("No more entities in proximity group %s"), *ProximityIdToRemove.ToString());
+	} 
+
+	Material1.ProximityId.Invalidate();
+	Material2.ProximityId.Invalidate();
+
+	return true;
+}
+
+bool UChemistrySubsystem::CheckProximity(UPARAM(ref)FChemicalMaterial& Material1, UPARAM(ref)FChemicalMaterial& Material2)
+{
+	if (!Material1.ProximityId.IsValid() || !Material2.ProximityId.IsValid())
+	{
+		UE_LOG(LogElementsChemistry, Error, TEXT("Check proximity: One or more ID invalid"));
+		return false;
+	}
+	
+	if (!EntitiesInProximity.Contains(Material1.ProximityId) || !EntitiesInProximity.Contains(Material2.ProximityId))
+	{
+		UE_LOG(LogElementsChemistry, Error, TEXT("Check proximity: One or more ID not found"));
+		return false;
+	}
+
+	return Material1.ProximityId == Material2.ProximityId;
 }
 
 FChemicalReaction& UChemistrySubsystem::StartReaction(FName ReactionName)
