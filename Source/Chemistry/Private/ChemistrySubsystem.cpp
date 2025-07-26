@@ -33,7 +33,7 @@ void UChemistrySubsystem::Tick(float DeltaTime)
 	/**/	UE_LOG(LogElementsChemistry, Display, TEXT("Proximity group: %s"), *ProxGroup.Key.ToString());												 /**/
 	/**/	for (auto ProxElement : ProxGroup.Value)																									 /**/
 	/**/	{																																			 /**/
-	/**/		UE_LOG(LogElementsChemistry, Display, TEXT("\t%s: %s"), *ProxElement.Key.ToString(), *ProxElement.Value->GetType().ToString());			 /**/
+	/**/		UE_LOG(LogElementsChemistry, Display, TEXT("\t%s"), *ProxElement->GetIDString())														 /**/
 	/**/	}																																			 /**/
 	/**/}																																				 /**/
 	/**/timer = 0;																																		 /**/
@@ -249,26 +249,16 @@ FChemicalReaction UChemistrySubsystem::RecognizeReactionPattern(FGuid ProximityG
 	FChemicalReaction NewReaction;
 	if (ProximityGroupId.IsValid())
 	{
-		TArray<FChemicalMaterial*> ProximityGroup;
-		EntitiesInProximity[ProximityGroupId].GenerateValueArray(ProximityGroup);
+		TArray<FChemicalMaterial*> ProximityGroup =	EntitiesInProximity[ProximityGroupId];
 		
-		// for (auto ReactionRow : RuntimeReactions)
-		// {
-		// 	FChemicalReaction Reaction = ReactionRow.Value;
-		// 	bool bFound = true;
-		// 	for (FName MaterialName : Reaction.GetReagentMaterials())
-		// 	{
-		// 		if (!ProximityGroup.Contains(MaterialName))
-		// 		{
-		// 			bFound = false;
-		// 			break;
-		// 		}
-		// 	}
-		// 	if (bFound)
-		// 	{
-		// 		NewReaction = Reaction;
-		// 	}
-		// }
+		for (auto ReactionRow : RuntimeReactions)
+		{
+			FChemicalReaction Reaction = ReactionRow.Value;
+			if (Reaction.CheckReagents(ProximityGroup))
+			{
+				UE_LOG(LogElementsChemistry, Display, TEXT("REACTION FOUND! %s"), *Reaction.Name.ToString());
+			}
+		}
 	}
 	else
 	{
@@ -299,13 +289,14 @@ bool UChemistrySubsystem::BeginProximity(UPARAM(ref) FChemicalMaterial& Material
 		FGuid NewProximityId = FGuid::NewGuid();
 		EntitiesInProximity.Add(NewProximityId);
 
-		EntitiesInProximity[NewProximityId].Add(Material1.GetID(), &Material1);
+		EntitiesInProximity[NewProximityId].Add(&Material1);
 		Material1.ProximityId = NewProximityId;
 		
-		EntitiesInProximity[NewProximityId].Add(Material2.GetID(), &Material2);
+		EntitiesInProximity[NewProximityId].Add(&Material2);
 		Material2.ProximityId = NewProximityId;
 
 		UE_LOG(LogElementsChemistry, Display, TEXT("New proximity group! Materials %s and %s \tProximity ID: %s"), *Material1.ToString(), *Material2.ToString(), *NewProximityId.ToString());
+		RecognizeReactionPattern(NewProximityId);
 		return true;
 	}
 
@@ -318,9 +309,10 @@ bool UChemistrySubsystem::BeginProximity(UPARAM(ref) FChemicalMaterial& Material
 			return false;
 		}
 
-		EntitiesInProximity[Material1.ProximityId].Add(Material2.GetID(), &Material2);
+		EntitiesInProximity[Material1.ProximityId].Add(&Material2);
 		Material2.ProximityId = Material1.ProximityId;
 		UE_LOG(LogElementsChemistry, Display, TEXT("Proximity signaled: %s united with %s \tProximity ID: %s"), *Material2.ToString(), *Material1.ToString(), *Material1.ProximityId.ToString());
+		RecognizeReactionPattern(Material1.ProximityId);
 		return true;
 	}
 	if (!Material1.ProximityId.IsValid() && Material2.ProximityId.IsValid())
@@ -331,9 +323,10 @@ bool UChemistrySubsystem::BeginProximity(UPARAM(ref) FChemicalMaterial& Material
 			return false;
 		}
 
-		EntitiesInProximity[Material2.ProximityId].Add(Material1.GetID(), &Material1);
+		EntitiesInProximity[Material2.ProximityId].Add(&Material1);
 		Material1.ProximityId = Material2.ProximityId;
 		UE_LOG(LogElementsChemistry, Display, TEXT("Proximity signaled: %s united with %s \tProximity ID: %s"), *Material1.ToString(), *Material2.ToString(), *Material1.ProximityId.ToString());
+		RecognizeReactionPattern(Material2.ProximityId);
 		return true;
 	}
 
@@ -352,12 +345,13 @@ bool UChemistrySubsystem::BeginProximity(UPARAM(ref) FChemicalMaterial& Material
 	
 		for (auto Material : EntitiesInProximity[IdTransfer])
 		{
-			Material.Value->ProximityId = IdDestination;
+			Material->ProximityId = IdDestination;
 			EntitiesInProximity[IdDestination].Add(Material);
 		}
 		EntitiesInProximity.Remove(IdTransfer);
 		
         UE_LOG(LogElementsChemistry, Display, TEXT("Proximity groups %s and %s have been united."), *IdTransfer.ToString(), *IdDestination.ToString());
+		RecognizeReactionPattern(IdDestination);
 		return true;
 	}
 	
@@ -381,13 +375,13 @@ bool UChemistrySubsystem::EndProximity(UPARAM(ref) FChemicalMaterial& Material1,
 	}
 
 	FGuid ProximityIdToRemove = Material1.ProximityId;
-	if (EntitiesInProximity[ProximityIdToRemove].Remove(Material1.GetID()) < 1)
+	if (EntitiesInProximity[ProximityIdToRemove].Remove(&Material1) < 1)
 	{
 		UE_LOG(LogElementsChemistry, Error, TEXT("Cannot remove Material %s from ProximityId %s cannot be found"), *Material1.ToString(), *Material1.ProximityId.ToString());
 		return false;
 	}
 
-	if (EntitiesInProximity[ProximityIdToRemove].Remove(Material2.GetID()) < 1)
+	if (EntitiesInProximity[ProximityIdToRemove].Remove(&Material2) < 1)
 	{
 		UE_LOG(LogElementsChemistry, Error, TEXT("Cannot remove Material %s from ProximityId %s cannot be found"), *Material2.ToString(), *Material2.ProximityId.ToString());
 		return false;
@@ -405,6 +399,7 @@ bool UChemistrySubsystem::EndProximity(UPARAM(ref) FChemicalMaterial& Material1,
 	return true;
 }
 
+// TODO: remove
 bool UChemistrySubsystem::CheckProximity(UPARAM(ref)FChemicalMaterial& Material1, UPARAM(ref)FChemicalMaterial& Material2)
 {
 	if (!Material1.ProximityId.IsValid() || !Material2.ProximityId.IsValid())

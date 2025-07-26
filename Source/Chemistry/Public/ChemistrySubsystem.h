@@ -68,7 +68,7 @@ private:
 	TMap<FGuid, FChemicalReaction> ActiveReactions; // List of active reactions in the world
 	
 	// TODO: implement this using a graph structure to allow to end proximity
-	TMap<FGuid, TMap<FGuid, FChemicalMaterial*>> EntitiesInProximity;
+	TMap<FGuid, TArray<FChemicalMaterial*>> EntitiesInProximity;
 
 public:
 	FChemicalElement* GetElement(FName ElementName);

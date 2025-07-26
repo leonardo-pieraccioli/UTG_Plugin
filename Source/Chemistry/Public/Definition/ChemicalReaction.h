@@ -115,11 +115,11 @@ public:
 	int32 Priority;
 
 	TArray<FName> GetReagentMaterials();
-	TArray<TTuple<FName, float>> GetReagentThresholds();
 	TArray<FName> GetProductMaterials();
 	TArray<FName> GetProductCatalysts();
 	TArray<FName> GetProductElements();
 
+	bool CheckReagents(TArray<FChemicalMaterial*> ProximityGroup);
 
 	void ProcessReaction();
 };

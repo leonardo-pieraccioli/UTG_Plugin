@@ -29,16 +29,6 @@ TArray<FName> FChemicalReaction::GetReagentMaterials()
 	return ReagentMaterialsNames;
 }
 
-TArray<TTuple<FName, float>> FChemicalReaction::GetReagentThresholds()
-{
-	TArray<TTuple<FName, float>> ReagentThresholds;
-	for (FReagentMaterialProperties Reagent : Reagents)
-	{
-		ReagentThresholds.Emplace(Reagent.Material->GetType(), Reagent.ActivationThreshold);
-	}
-	return ReagentThresholds;
-}
-
 TArray<FName> FChemicalReaction::GetProductMaterials()
 {
 	TArray<FName> ProductMaterialsNames;
@@ -70,6 +60,31 @@ TArray<FName> FChemicalReaction::GetProductElements()
 		ProductElementsNames.Add(Element.Element->GetType());
 	}
 	return ProductElementsNames;
+}
+
+bool FChemicalReaction::CheckReagents(TArray<FChemicalMaterial*> ProximityGroup)
+{
+	// Count occurrences in Reagents
+    TMap<FName,int32> CountMap;
+    CountMap.Reserve(Reagents.Num());
+    for (const FReagentMaterialProperties& Reagent : Reagents)
+        CountMap.FindOrAdd(Reagent.Material->GetType())++;
+
+    // For each key in Subset, decrement count and fail if not enough
+    for (FChemicalMaterial* Material : ProximityGroup)
+    {
+        int32* OccurrencyPtr = CountMap.Find(Material->GetType());
+		if (!OccurrencyPtr)
+			continue;
+		(*OccurrencyPtr)--;
+    }
+	for (const auto& Occurrency : CountMap)
+	{
+		if (Occurrency.Value > 0)
+			return false;
+	}
+
+	return true;
 }
 
 void FChemicalReaction::ProcessReaction()
