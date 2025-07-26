@@ -4,10 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
+
 #include "Definition/ElementDataAsset.h"
+#include "Definition/ChemicalElement.h"
+
 #include "Definition/ChemicalMaterialDataAsset.h"
+#include "Definition/ChemicalMaterial.h"
+
 #include "Definition/ReactionDataAsset.h"
+#include "Definition/ChemicalReaction.h"
+
 #include "Definition/CatalystDataAsset.h"
+#include "Definition/ChemicalCatalyst.h"
+
 #include "ChemistrySubsystem.generated.h"
 
 /**
@@ -53,8 +62,9 @@ private:
 
 	FChemicalReaction* GetReaction(FName ReactionName);
 	// To generate a new reaction when there components are in proximity
-	FChemicalReaction& StartReaction(FName ReactionName);
-	
+	FChemicalReaction& ShouldStartReaction(FName ReactionName);
+	FChemicalReaction RecognizeReactionPattern(FGuid ProximityGroupId);
+
 	TMap<FGuid, FChemicalReaction> ActiveReactions; // List of active reactions in the world
 	
 	// TODO: implement this using a graph structure to allow to end proximity

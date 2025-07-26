@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "ChemistrySubsystem.h"
 #include "ElementsDeveloperSettings.h"
 #include "ChemistryLog.h"
@@ -169,10 +168,17 @@ FChemicalReaction UChemistrySubsystem::CreateReactionFromData(const UReactionDat
 		UE_LOG(LogElementsChemistry, Display, TEXT("Material %s with coefficient %f added to Products of Reaction %s"), *MaterialTuple.Material->MaterialName.ToString(), MaterialTuple.Coefficient, *ReactionData->GetFName().ToString());
 	}
 
-	for (auto MaterialsData = ReactionData->Reagents.Materials; FMaterialReactionTuple MaterialTuple : MaterialsData)
+	for (auto MaterialsData = ReactionData->Reagents.Materials; auto MaterialProperties : MaterialsData)
 	{
-		NewReaction.Reagents.Materials.Emplace(MaterialTuple.Coefficient, GetMaterial(MaterialTuple.Material->MaterialName));
-		UE_LOG(LogElementsChemistry, Display, TEXT("Material %s with coefficient %f added to Reagents of Reaction %s"), *MaterialTuple.Material->MaterialName.ToString(), MaterialTuple.Coefficient, *ReactionData->GetFName().ToString());
+		NewReaction.Reagents.Emplace(MaterialProperties.Coefficient, GetMaterial(MaterialProperties.Material->MaterialName), MaterialProperties.ActivationElement->ElementName, MaterialProperties.ActivationThreshold);
+		UE_LOG(LogElementsChemistry, Display,
+			TEXT("Material %s with coefficient %f added to Reagents of Reaction %s\nActivation Threshold is %s = %f"),
+			*MaterialProperties.Material->MaterialName.ToString(),
+			MaterialProperties.Coefficient,
+			*ReactionData->GetFName().ToString(),
+			*MaterialProperties.ActivationElement->ElementName.ToString(),
+			MaterialProperties.ActivationThreshold
+		);
 	}
 	UE_LOG(LogElementsChemistry, Display, TEXT("Reaction %s created!"), *ReactionData->GetFName().ToString());
 	return NewReaction;
@@ -236,6 +242,39 @@ FChemicalMaterial UChemistrySubsystem::GenerateMaterial(FName MaterialName, bool
 	FChemicalMaterial NewMaterial{ *FoundMaterial };
 	UE_LOG(LogElementsChemistry, Display, TEXT("Material %s generated successfully"), *NewMaterial.ToString());
 	return NewMaterial;
+}
+
+FChemicalReaction UChemistrySubsystem::RecognizeReactionPattern(FGuid ProximityGroupId = FGuid(0,0,0,0))
+{
+	FChemicalReaction NewReaction;
+	if (ProximityGroupId.IsValid())
+	{
+		TArray<FChemicalMaterial*> ProximityGroup;
+		EntitiesInProximity[ProximityGroupId].GenerateValueArray(ProximityGroup);
+		
+		// for (auto ReactionRow : RuntimeReactions)
+		// {
+		// 	FChemicalReaction Reaction = ReactionRow.Value;
+		// 	bool bFound = true;
+		// 	for (FName MaterialName : Reaction.GetReagentMaterials())
+		// 	{
+		// 		if (!ProximityGroup.Contains(MaterialName))
+		// 		{
+		// 			bFound = false;
+		// 			break;
+		// 		}
+		// 	}
+		// 	if (bFound)
+		// 	{
+		// 		NewReaction = Reaction;
+		// 	}
+		// }
+	}
+	else
+	{
+		// not implemented
+	}
+	return NewReaction;
 }
 
 bool UChemistrySubsystem::BeginProximity(UPARAM(ref) FChemicalMaterial& Material1, UPARAM(ref) FChemicalMaterial& Material2)
@@ -383,7 +422,7 @@ bool UChemistrySubsystem::CheckProximity(UPARAM(ref)FChemicalMaterial& Material1
 	return Material1.ProximityId == Material2.ProximityId;
 }
 
-FChemicalReaction& UChemistrySubsystem::StartReaction(FName ReactionName)
+FChemicalReaction& UChemistrySubsystem::ShouldStartReaction(FName ReactionName)
 {
 	FChemicalReaction* FoundReaction = GetReaction(ReactionName);
 	if (!FoundReaction)
@@ -393,6 +432,7 @@ FChemicalReaction& UChemistrySubsystem::StartReaction(FName ReactionName)
 	}
 
 	// TODO: add to ActiveReactions data structure and adapt return
+
 
 	return *FoundReaction;
 }

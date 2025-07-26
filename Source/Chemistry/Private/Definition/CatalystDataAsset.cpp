@@ -7,18 +7,3 @@ bool UCatalystDataAsset::operator=(UCatalystDataAsset& Rhs)
 {
 	return CatalystName == Rhs.CatalystName;
 }
-
-float FChemicalCatalyst::GetActivationThresholdModifier()
-{
-	return ActivationThresholdModifier;
-}
-
-FName FChemicalCatalyst::GetType()
-{
-	return Type;
-}
-
-FGuid FChemicalCatalyst::GetID()
-{
-	return ID;
-}
