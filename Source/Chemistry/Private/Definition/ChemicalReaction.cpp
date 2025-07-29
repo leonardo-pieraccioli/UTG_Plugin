@@ -18,6 +18,11 @@ FChemicalReaction::FChemicalReaction(const UReactionDataAsset* ReactionData) : P
 	Products.Elements.Reserve(ReactionData->Products.Elements.Num());
 }
 
+FGuid FChemicalReaction::GetId()
+{
+	return ReactionId;
+}
+
 TArray<FName> FChemicalReaction::GetReagentMaterials()
 {
 	TArray<FName> ReagentMaterialsNames;
@@ -62,32 +67,60 @@ TArray<FName> FChemicalReaction::GetProductElements()
 	return ProductElementsNames;
 }
 
-bool FChemicalReaction::CheckReagents(TArray<FChemicalMaterial*> ProximityGroup)
+FChemicalReaction FChemicalReaction::ShouldCreateReaction(TArray<FChemicalMaterial*> ProximityGroup)
 {
-	// Count occurrences in Reagents
-    TMap<FName,int32> CountMap;
-    CountMap.Reserve(Reagents.Num());
-    for (const FReagentMaterialProperties& Reagent : Reagents)
-        CountMap.FindOrAdd(Reagent.Material->GetType())++;
+	FChemicalReaction NewReaction;
+	TMap<FName, TArray<FChemicalMaterial*>> ParticipantMaterialsByType;
+	ParticipantMaterialsByType.Reserve(Reagents.Num());
 
-    // For each key in Subset, decrement count and fail if not enough
-    for (FChemicalMaterial* Material : ProximityGroup)
-    {
-        int32* OccurrencyPtr = CountMap.Find(Material->GetType());
-		if (!OccurrencyPtr)
-			continue;
-		(*OccurrencyPtr)--;
-    }
-	for (const auto& Occurrency : CountMap)
+	// Check if necessary materials are in proximity group
+	for (FReagentMaterialProperties MaterialProperty : Reagents)
 	{
-		if (Occurrency.Value > 0)
-			return false;
+		FChemicalMaterial* Material = MaterialProperty.Material;
+		FChemicalMaterial** FoundParticipantMaterial = ProximityGroup.FindByPredicate([Material](FChemicalMaterial* Other) -> bool { return Material->GetType() == Other->GetType(); });
+		if (FoundParticipantMaterial == nullptr)
+		{
+			return FChemicalReaction();
+		}
+		FChemicalMaterial* ParticipantMaterial = *FoundParticipantMaterial;
+		if (ParticipantMaterialsByType.Find(Material->GetType()) == nullptr)
+		{
+			ParticipantMaterialsByType.Add(Material->GetType());
+		}
+		ParticipantMaterialsByType[Material->GetType()].Add(ParticipantMaterial);
 	}
 
-	return true;
+	NewReaction.Products = Products;
+	NewReaction.Reagents.Reserve(Reagents.Num());
+
+	// Check which material has necessary elements
+	for (const auto& MaterialType : ParticipantMaterialsByType)
+	{
+		for (const auto ParticipantMaterial : MaterialType.Value)
+		{
+			auto PropertyPredicate = [ParticipantMaterial](FReagentMaterialProperties& Property) -> bool { return Property.Material->GetType() == ParticipantMaterial->GetType(); };
+			FReagentMaterialProperties* RequiredProperty = Reagents.FindByPredicate(PropertyPredicate);
+			FName RequiredElementName = RequiredProperty->ActivationElement;
+			if (ParticipantMaterial->GetElement(RequiredElementName)->Energy >= RequiredProperty->ActivationThreshold)
+			{
+				RequiredProperty->Material = ParticipantMaterial;
+				NewReaction.Reagents.Add(*RequiredProperty);
+			}
+			else
+			{
+				return FChemicalReaction();
+			}
+		}
+	}
+
+	NewReaction.ReactionId = FGuid::NewGuid();
+	NewReaction.Name = Name;
+	return NewReaction;
 }
 
 void FChemicalReaction::ProcessReaction()
 {
 	UE_LOG(LogElementsChemistry, Display, TEXT("Reaction %s executing"), *ReactionId.ToString());
+
+	
 }

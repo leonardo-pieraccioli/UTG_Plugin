@@ -63,9 +63,9 @@ private:
 	FChemicalReaction* GetReaction(FName ReactionName);
 	// To generate a new reaction when there components are in proximity
 	FChemicalReaction& ShouldStartReaction(FName ReactionName);
-	FChemicalReaction RecognizeReactionPattern(FGuid ProximityGroupId);
+	void RecognizeReactionPattern(FGuid ProximityGroupId);
 
-	TMap<FGuid, FChemicalReaction> ActiveReactions; // List of active reactions in the world
+	TArray<FChemicalReaction*> ActiveReactions; // List of active reactions in the world
 	
 	// TODO: implement this using a graph structure to allow to end proximity
 	TMap<FGuid, TArray<FChemicalMaterial*>> EntitiesInProximity;

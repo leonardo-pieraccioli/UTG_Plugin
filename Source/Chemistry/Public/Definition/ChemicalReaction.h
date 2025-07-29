@@ -54,7 +54,7 @@ private:
 
 public:
 	// Default constructor generates a new unique ID for the reaction
-	FChemicalReaction() : ReactionId(FGuid::NewGuid()) {};
+	FChemicalReaction() {};
 	// Constructor that initializes the reaction from a ReactionDataAsset
 	FChemicalReaction(const UReactionDataAsset* ReactionData);
 	// Copy and Move constructors
@@ -114,12 +114,14 @@ public:
 	TArray<FReagentMaterialProperties> Reagents;
 	int32 Priority;
 
+	FGuid GetId();
+
 	TArray<FName> GetReagentMaterials();
 	TArray<FName> GetProductMaterials();
 	TArray<FName> GetProductCatalysts();
 	TArray<FName> GetProductElements();
 
-	bool CheckReagents(TArray<FChemicalMaterial*> ProximityGroup);
+	FChemicalReaction ShouldCreateReaction(TArray<FChemicalMaterial*> ProximityGroup);
 
 	void ProcessReaction();
 };

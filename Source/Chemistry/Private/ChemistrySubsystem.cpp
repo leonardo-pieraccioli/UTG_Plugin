@@ -23,29 +23,29 @@ void UChemistrySubsystem::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	// TODO: -------- REMOVE --------------------------------------------------------------------------------------------------------------------------------
-	/**/static float timer = 0;																															 /**/
-	/**/timer += DeltaTime;																																 /**/
-	/**/if (timer < 2) return;																															 /**/
-	/**/UE_LOG(LogElementsChemistry, Display, TEXT("GROUP PROXIMITY REPORT:"));																			 /**/
-	/**/for (auto ProxGroup : EntitiesInProximity)																										 /**/
-	/**/{																																				 /**/
-	/**/	UE_LOG(LogElementsChemistry, Display, TEXT("Proximity group: %s"), *ProxGroup.Key.ToString());												 /**/
-	/**/	for (auto ProxElement : ProxGroup.Value)																									 /**/
-	/**/	{																																			 /**/
-	/**/		UE_LOG(LogElementsChemistry, Display, TEXT("\t%s"), *ProxElement->GetIDString())														 /**/
-	/**/	}																																			 /**/
-	/**/}																																				 /**/
-	/**/timer = 0;																																		 /**/
-	// ------------------------------------------------------------------------------------------------------------------------------------------------------
+	// TODO: REMOVE ------------------------------------------------------------------------------------------------
+	/**/static float timer = 0;																					/**/
+	/**/timer += DeltaTime;																						/**/
+	/**/if (timer < 0.2f) return;																					/**/
+	/**/UE_LOG(LogElementsChemistry, Display, TEXT("GROUP PROXIMITY REPORT:"));									/**/
+	/**/for (auto ProxGroup : EntitiesInProximity)																/**/
+	/**/{																										/**/
+	/**/	UE_LOG(LogElementsChemistry, Display, TEXT("Proximity group: %s"), *ProxGroup.Key.ToString());		/**/
+	/**/	for (auto ProxElement : ProxGroup.Value)															/**/
+	/**/	{																									/**/
+	/**/		UE_LOG(LogElementsChemistry, Display, TEXT("\t%s"), *ProxElement->GetIDString())				/**/
+	/**/	}																									/**/
+	/**/}																										/**/
+	/**/timer = 0;																								/**/
+	// -------------------------------------------------------------------------------------------------------------
 
 	if (ActiveReactions.IsEmpty())
 	{
 		return;
 	}
-	for (auto ReactionTuple : ActiveReactions)
+	for (auto Reaction : ActiveReactions)
 	{
-		ReactionTuple.Value.ProcessReaction();
+		Reaction->ProcessReaction();
 	}
 }
 
@@ -172,10 +172,12 @@ FChemicalReaction UChemistrySubsystem::CreateReactionFromData(const UReactionDat
 	{
 		NewReaction.Reagents.Emplace(MaterialProperties.Coefficient, GetMaterial(MaterialProperties.Material->MaterialName), MaterialProperties.ActivationElement->ElementName, MaterialProperties.ActivationThreshold);
 		UE_LOG(LogElementsChemistry, Display,
-			TEXT("Material %s with coefficient %f added to Reagents of Reaction %s\nActivation Threshold is %s = %f"),
+			TEXT("Material %s with coefficient %f added to Reagents of Reaction %s"),
 			*MaterialProperties.Material->MaterialName.ToString(),
 			MaterialProperties.Coefficient,
-			*ReactionData->GetFName().ToString(),
+			*ReactionData->GetFName().ToString()
+		);
+		UE_LOG(LogElementsChemistry, Display, TEXT("Activation Threshold is %s = %f"),
 			*MaterialProperties.ActivationElement->ElementName.ToString(),
 			MaterialProperties.ActivationThreshold
 		);
@@ -244,27 +246,33 @@ FChemicalMaterial UChemistrySubsystem::GenerateMaterial(FName MaterialName, bool
 	return NewMaterial;
 }
 
-FChemicalReaction UChemistrySubsystem::RecognizeReactionPattern(FGuid ProximityGroupId = FGuid(0,0,0,0))
+void UChemistrySubsystem::RecognizeReactionPattern(FGuid ProximityGroupId = FGuid(0,0,0,0))
 {
 	FChemicalReaction NewReaction;
 	if (ProximityGroupId.IsValid())
 	{
 		TArray<FChemicalMaterial*> ProximityGroup =	EntitiesInProximity[ProximityGroupId];
 		
-		for (auto ReactionRow : RuntimeReactions)
+		for (auto& ReactionRow : RuntimeReactions)
 		{
-			FChemicalReaction Reaction = ReactionRow.Value;
-			if (Reaction.CheckReagents(ProximityGroup))
+			NewReaction = ReactionRow.Value.ShouldCreateReaction(ProximityGroup);
+			if (NewReaction.GetId().IsValid())
 			{
-				UE_LOG(LogElementsChemistry, Display, TEXT("REACTION FOUND! %s"), *Reaction.Name.ToString());
+				UE_LOG(LogElementsChemistry, Display, TEXT("REACTION ACTIVATED! %s"), *NewReaction.Name.ToString());
+				UE_LOG(LogElementsChemistry, Display, TEXT("Reagents List : "));
+				for (const FName& Reagent : NewReaction.GetReagentMaterials())
+				{
+					UE_LOG(LogElementsChemistry, Display, TEXT("\t%s"), *Reagent.ToString());
+				}
+				ActiveReactions.Add(&NewReaction);
 			}
 		}
 	}
-	else
+	// version with no ProximityId. Does it make sense?
+	else 
 	{
 		// not implemented
 	}
-	return NewReaction;
 }
 
 bool UChemistrySubsystem::BeginProximity(UPARAM(ref) FChemicalMaterial& Material1, UPARAM(ref) FChemicalMaterial& Material2)
